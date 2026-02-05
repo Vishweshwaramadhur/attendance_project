@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-clipboard-check text-primary"></i>
+                Attendance Management System
+            </h1>
+            <p class="lead text-muted">Track and manage student attendance efficiently</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Student Login Card -->
+            <div class="col-md-6">
+                <div class="card shadow-lg hover-card h-100">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="fas fa-user-graduate fa-5x text-primary"></i>
+                        </div>
+                        <h3 class="card-title mb-3">Student Portal</h3>
+                        <p class="card-text text-muted mb-4">
+                            Login to mark your attendance and view your attendance history
+                        </p>
+                        <a href="{{ url_for('student_login') }}" class="btn btn-primary btn-lg px-5">
+                            <i class="fas fa-sign-in-alt"></i> Student Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Login Card -->
+            <div class="col-md-6">
+                <div class="card shadow-lg hover-card h-100">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="fas fa-chalkboard-teacher fa-5x text-success"></i>
+                        </div>
+                        <h3 class="card-title mb-3">Teacher Portal</h3>
+                        <p class="card-text text-muted mb-4">
+                            Login to manage students and view attendance records
+                        </p>
+                        <a href="{{ url_for('teacher_login') }}" class="btn btn-success btn-lg px-5">
+                            <i class="fas fa-sign-in-alt"></i> Teacher Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3 class="text-center mb-4">Key Features</h3>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>Easy Attendance</h5>
+                        <p class="text-muted">Students can mark their attendance with a single click</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                        <h5>Real-time Statistics</h5>
+                        <p class="text-muted">View attendance percentage and detailed reports</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
+                        <h5>Secure Access</h5>
+                        <p class="text-muted">Role-based authentication for students and teachers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Student Login - Attendance System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-lg">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <h3 class="mb-0">
+                    <i class="fas fa-user-graduate"></i> Student Login
+                </h3>
+            </div>
+            <div class="card-body p-5">
+                <form method="POST" action="{{ url_for('student_login') }}">
+                    <div class="mb-4">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="username" name="username"
+                            placeholder="Enter your username" required autofocus>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <input type="password" class="form-control form-control-lg" id="password" name="password"
+                            placeholder="Enter your password" required>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center py-3">
+                <small class="text-muted">
+                    Not a student? <a href="{{ url_for('teacher_login') }}">Teacher Login</a>
+                </small>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="alert alert-info mt-4">
+            <h6><i class="fas fa-info-circle"></i> Demo Credentials:</h6>
+            <p class="mb-1"><strong>Username:</strong> james.anderson</p>
+            <p class="mb-0"><strong>Password:</strong> pass1001</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
