@@ -117,9 +117,15 @@
                                 <td>{{ record.date }}</td>
                                 <td>{{ record.time }}</td>
                                 <td>
+                                    {% if record.status == 'Present' %}
                                     <span class="badge bg-success">
-                                        <i class="fas fa-check"></i> {{ record.status }}
+                                        <i class="fas fa-check"></i> Present
                                     </span>
+                                    {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times"></i> Absent
+                                    </span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

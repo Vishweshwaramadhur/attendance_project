@@ -1,31 +1,34 @@
 # Attendance Management System
 
-A complete web-based Attendance Management System built with Flask, SQLite, Bootstrap 5, and JavaScript (Fetch API).
+A complete web-based Attendance Management System built with Flask, SQLite, Bootstrap 5, and JavaScript. **Teacher-controlled attendance marking system** where only teachers can mark student attendance.
 
 ## Features
 
-### Student Features
+### Student Features (View-Only)
 - Secure login system
-- Mark attendance (once per day)
-- View personal attendance history
-- View attendance statistics (total days, present days, percentage)
-- Real-time attendance marking without page reload (AJAX)
+- **View-only dashboard** (cannot mark own attendance)
+- View personal attendance history (Present/Absent records)
+- View attendance statistics (total days, present days, absent days, percentage)
+- Real-time statistics display
 
-### Teacher Features
+### Teacher Features (Full Control)
 - Secure login system
+- **Bulk attendance marking** - Mark all students at once
+- **Individual attendance marking** - Mark students one by one (Present/Absent)
 - View dashboard with statistics
 - View all students list
 - View any student's attendance history
 - Filter attendance by date
-- Mark attendance for students
 - Delete students
 - View total students, boys, girls count
+- Today's attendance summary
 
 ## Technology Stack
-- **Backend**: Python Flask
+- **Backend**: Python Flask 3.0.0
 - **Database**: SQLite
-- **Frontend**: HTML, CSS, Bootstrap 5, JavaScript (Fetch API)
+- **Frontend**: HTML, CSS, Bootstrap 5, JavaScript
 - **Authentication**: Flask Sessions
+- **Security**: Role-based access control, unauthorized access prevention
 
 ## Installation & Setup
 
@@ -33,11 +36,19 @@ A complete web-based Attendance Management System built with Flask, SQLite, Boot
 - Python 3.7 or higher installed
 - pip (Python package manager)
 
-### Step 1: Extract the Project
-Extract all files to a folder named `attendance_project`
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/vishweshwaramadhur/attendance_project.git
+cd attendance_project
+```
 
-### Step 2: Install Required Packages
-Open terminal/command prompt in the project directory and run:
+### Step 2: Create Virtual Environment (Recommended)
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### Step 3: Install Required Packages
 ```bash
 pip install -r requirements.txt
 ```
@@ -48,7 +59,7 @@ pip install Flask==3.0.0
 pip install Werkzeug==3.0.1
 ```
 
-### Step 3: Run the Application
+### Step 4: Run the Application
 ```bash
 python app.py
 ```
@@ -56,12 +67,17 @@ python app.py
 The application will:
 1. Automatically check if `attendance.db` exists
 2. If not, create the database using `database.sql`
-3. Start the Flask development server
+3. Start the Flask development server on `http://0.0.0.0:5000`
 
-### Step 4: Access the Application
+### Step 5: Access the Application
 Open your web browser and go to:
 ```
 http://127.0.0.1:5000/
+```
+
+Or from another device on the same network:
+```
+http://YOUR_IP_ADDRESS:5000/
 ```
 
 ## Default Login Credentials
@@ -85,23 +101,26 @@ Students cannot self-register. Here are some example student accounts:
 ## Project Structure
 ```
 attendance_project/
-├── app.py                          # Main Flask application
-├── database.sql                    # SQL schema and seed data
-├── attendance.db                   # SQLite database (auto-created)
-├── README.md                       # This file
-├── requirements.txt                # Python dependencies
+├── app.py                              # Main Flask application
+├── database.sql                        # SQL schema and seed data
+├── attendance.db                       # SQLite database (auto-created)
+├── README.md                           # This file
+├── requirements.txt                    # Python dependencies
+├── .gitignore                          # Git ignore rules
 ├── templates/
-│   ├── base.html                  # Base template
-│   ├── home.html                  # Landing page
-│   ├── student_login.html         # Student login page
-│   ├── teacher_login.html         # Teacher login page
-│   ├── student_dashboard.html     # Student dashboard
-│   ├── teacher_dashboard.html     # Teacher dashboard
-│   ├── teacher_students_list.html # Students list for teacher
-│   └── teacher_view_attendance.html # View student attendance
-├── static/
-│   ├── style.css                  # Custom CSS styles
-│   └── main.js                    # JavaScript for AJAX functionality
+│   ├── base.html                      # Base template with navigation
+│   ├── home.html                      # Landing page
+│   ├── student_login.html             # Student login page
+│   ├── teacher_login.html             # Teacher login page
+│   ├── student_dashboard.html         # Student dashboard (VIEW ONLY)
+│   ├── teacher_dashboard.html         # Teacher dashboard
+│   ├── teacher_students_list.html     # Students list for teacher
+│   ├── teacher_view_attendance.html   # View student attendance
+│   ├── teacher_mark_attendance_bulk.html  # Bulk attendance marking (NEW)
+│   └── unauthorized.html              # 403 Unauthorized access page (NEW)
+└── static/
+    ├── style.css                      # Custom CSS styles
+    └── main.js                        # JavaScript for frontend
 ```
 
 ## Database Schema
@@ -127,7 +146,7 @@ attendance_project/
 - student_id (FOREIGN KEY)
 - date
 - time
-- status
+- status (Present/Absent)
 - created_at
 
 ## How Database is Created
@@ -141,42 +160,85 @@ The `init_db()` function in `app.py`:
 
 ## Key Features Implementation
 
-### AJAX Attendance Marking
-- Uses JavaScript Fetch API
-- No page reload required
-- Real-time success/error messages
-- Automatic statistics update
+### Teacher-Controlled Attendance
+- **Bulk Marking**: Mark all students' attendance at once with Present/Absent options
+- **Individual Marking**: Quick buttons to mark individual students
+- **No Student Marking**: Students cannot mark their own attendance (security enforced)
 
-### Security
+### Security Features
 - Session-based authentication
 - Login required decorators
-- Role-based access control
-- Students cannot access teacher pages
-- Teachers cannot access student dashboards
+- Role-based access control (students cannot access teacher pages)
+- Unauthorized access returns 403 error page
+- Student attendance marking route disabled (returns 403 Forbidden)
 
 ### Validation
-- Students can mark attendance only once per day
-- Duplicate attendance prevention
-- Date-based filtering
+- Teachers cannot mark duplicate attendance for same day
+- Attendance status: Present or Absent
+- Date-based filtering for reports
 
 ## Usage Guide
 
 ### For Students:
 1. Login with your username and password
-2. Click "Mark Attendance" button
-3. View your attendance history
-4. Check your attendance statistics
+2. **View your attendance dashboard** (read-only)
+3. Check your attendance history
+4. View your attendance statistics
 5. Logout when done
 
+**Note**: Students cannot mark their own attendance. Only teachers can mark attendance.
+
 ### For Teachers:
+
+#### Bulk Attendance Marking:
 1. Login with teacher credentials
-2. View dashboard statistics
-3. Click "View Students" to see all students
-4. Click on any student to view their attendance
-5. Use date filter to view specific date attendance
-6. Mark attendance for absent students (optional)
-7. Delete students if needed (optional)
-8. Logout when done
+2. Click **"Mark Attendance"** button on dashboard
+3. Select Present (✓) or Absent (✗) for each student
+4. Click **"Submit Attendance"** button
+5. Only selected students will be marked
+
+#### Individual Attendance Marking:
+1. Go to **"View All Students"**
+2. For each student, click:
+   - Green ✓ button → Mark Present
+   - Yellow ✗ button → Mark Absent
+3. Confirmation message appears
+
+#### View Reports:
+1. Click **"View All Students"**
+2. Click on any student to view their attendance history
+3. Use date filter to view specific dates
+4. View statistics and attendance percentage
+
+#### Other Actions:
+- **Delete students**: Click red trash icon (with confirmation)
+- **View dashboard statistics**: See total students, boys, girls, today's attendance
+
+## Security Notes
+
+### Important for Production:
+1. **Change the secret key** in `app.py`:
+   ```python
+   app.secret_key = 'your_secret_key_here_change_in_production'
+   ```
+   Generate a secure random key:
+   ```python
+   import secrets
+   secrets.token_hex(32)
+   ```
+
+2. **Disable debug mode** in production:
+   ```python
+   app.run(debug=False, host='0.0.0.0', port=5000)
+   ```
+
+3. **Use a production WSGI server** (e.g., Gunicorn):
+   ```bash
+   pip install gunicorn
+   gunicorn -w 4 -b 0.0.0.0:5000 app:app
+   ```
+
+4. **Change default passwords** for all accounts
 
 ## Troubleshooting
 
@@ -187,18 +249,53 @@ The `init_db()` function in `app.py`:
 ### Module Not Found Error
 - Run `pip install -r requirements.txt` again
 - Make sure you're using the correct Python environment
+- Activate virtual environment if using one
 
 ### Port Already in Use
 - Change the port in `app.py`: `app.run(debug=True, port=5001)`
+- Or kill the process using port 5000:
+  ```bash
+  # Linux/Mac
+  lsof -ti:5000 | xargs kill -9
 
-## Support
-For issues or questions, check:
-- All files are in correct locations
-- Python and pip are properly installed
-- No firewall blocking port 5000
+  # Windows
+  netstat -ano | findstr :5000
+  taskkill /PID <PID> /F
+  ```
+
+### Cannot Access from Other Devices
+- Make sure `host='0.0.0.0'` in `app.run()`
+- Check firewall settings
+- Verify you're using the correct IP address
+
+## Recent Updates
+
+### Version 2.0 (Latest)
+- ✅ **Removed student attendance marking capability**
+- ✅ Student dashboard is now **view-only**
+- ✅ Added **bulk attendance marking** for teachers
+- ✅ Added **Present/Absent** status support
+- ✅ Enhanced security with 403 unauthorized page
+- ✅ Improved UI with better button grouping
+- ✅ Added absent days statistics
+- ✅ Updated teacher dashboard with quick actions
+
+### Version 1.0
+- Initial release with student self-marking
+
+## Contributing
+This is an educational project. Feel free to fork and modify as needed.
 
 ## License
 This project is for educational purposes.
 
+## Support
+For issues or questions:
+- Check the troubleshooting section
+- Verify all files are in correct locations
+- Ensure Python and pip are properly installed
+- Check that no firewall is blocking the port
+
 ---
 **Developed with Flask & Bootstrap**
+**Repository**: https://github.com/vishweshwaramadhur/attendance_project

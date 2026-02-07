@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Unauthorized Access{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow border-danger">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-exclamation-triangle text-danger" style="font-size: 5rem;"></i>
+                <h1 class="text-danger mt-4">403 - Unauthorized Access</h1>
+                <p class="lead mt-3">
+                    You don't have permission to access this page.
+                </p>
+                <p class="text-muted">
+                    Please login with appropriate credentials to access this resource.
+                </p>
+                <div class="mt-4">
+                    <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg me-2">
+                        <i class="fas fa-home"></i> Go to Home
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

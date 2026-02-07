@@ -156,6 +156,10 @@ def student_login_required(f):
         if 'student_id' not in session:
             flash('Please login as student first.', 'danger')
             return redirect(url_for('student_login'))
+        # Prevent students from accessing teacher routes
+        if 'teacher_id' in session:
+            flash('Unauthorized access!', 'danger')
+            return redirect(url_for('unauthorized'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -165,6 +169,10 @@ def teacher_login_required(f):
         if 'teacher_id' not in session:
             flash('Please login as teacher first.', 'danger')
             return redirect(url_for('teacher_login'))
+        # Prevent teachers from accessing student routes with student session
+        if 'student_id' in session:
+            flash('Unauthorized access!', 'danger')
+            return redirect(url_for('unauthorized'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -172,6 +180,11 @@ def teacher_login_required(f):
 @app.route('/')
 def home():
     return render_template('home.html')
+
+# Unauthorized Access Page
+@app.route('/unauthorized')
+def unauthorized():
+    return render_template('unauthorized.html'), 403
 
 # Student Login
 @app.route('/student/login', methods=['GET', 'POST'])
@@ -219,95 +232,47 @@ def teacher_login():
     
     return render_template('teacher_login.html')
 
-# Student Dashboard
+# Student Dashboard (VIEW ONLY - No Attendance Marking)
 @app.route('/student/dashboard')
 @student_login_required
 def student_dashboard():
     student_id = session['student_id']
     conn = get_db_connection()
-    
+
     # Get student info
     student = conn.execute('SELECT * FROM students WHERE student_id = ?', (student_id,)).fetchone()
-    
+
     # Get attendance records
     attendance_records = conn.execute(
         'SELECT * FROM attendance WHERE student_id = ? ORDER BY date DESC, time DESC',
         (student_id,)
     ).fetchall()
-    
+
     # Calculate statistics
     total_days = len(attendance_records)
     total_present = len([r for r in attendance_records if r['status'] == 'Present'])
+    total_absent = total_days - total_present
     percentage = (total_present / total_days * 100) if total_days > 0 else 0
-    
-    # Check if already marked today
-    today = datetime.now().strftime('%Y-%m-%d')
-    marked_today = conn.execute(
-        'SELECT * FROM attendance WHERE student_id = ? AND date = ?',
-        (student_id, today)
-    ).fetchone()
-    
+
     conn.close()
-    
+
     return render_template('student_dashboard.html',
                          student=student,
                          attendance_records=attendance_records,
                          total_days=total_days,
                          total_present=total_present,
-                         percentage=round(percentage, 2),
-                         marked_today=marked_today is not None)
+                         total_absent=total_absent,
+                         percentage=round(percentage, 2))
 
-# Mark Attendance (AJAX)
+# DISABLED: Students cannot mark their own attendance
+# Only teachers can mark attendance for students
 @app.route('/student/mark_attendance', methods=['POST'])
-@student_login_required
 def mark_attendance():
-    student_id = session['student_id']
-    today = datetime.now().strftime('%Y-%m-%d')
-    current_time = datetime.now().strftime('%H:%M:%S')
-    
-    conn = get_db_connection()
-    
-    # Check if already marked today
-    existing = conn.execute(
-        'SELECT * FROM attendance WHERE student_id = ? AND date = ?',
-        (student_id, today)
-    ).fetchone()
-    
-    if existing:
-        conn.close()
-        return jsonify({
-            'success': False,
-            'message': 'Attendance already marked today!'
-        }), 400
-    
-    # Insert attendance
-    conn.execute(
-        'INSERT INTO attendance (student_id, date, time, status) VALUES (?, ?, ?, ?)',
-        (student_id, today, current_time, 'Present')
-    )
-    conn.commit()
-    
-    # Get updated statistics
-    attendance_records = conn.execute(
-        'SELECT * FROM attendance WHERE student_id = ?',
-        (student_id,)
-    ).fetchall()
-    
-    total_days = len(attendance_records)
-    total_present = len([r for r in attendance_records if r['status'] == 'Present'])
-    percentage = (total_present / total_days * 100) if total_days > 0 else 0
-    
-    conn.close()
-    
+    # Return unauthorized - students cannot mark attendance
     return jsonify({
-        'success': True,
-        'message': 'Attendance marked successfully!',
-        'date': today,
-        'time': current_time,
-        'total_days': total_days,
-        'total_present': total_present,
-        'percentage': round(percentage, 2)
-    })
+        'success': False,
+        'message': 'Unauthorized! Only teachers can mark attendance.'
+    }), 403
 
 # Teacher Dashboard
 @app.route('/teacher/dashboard')
@@ -387,51 +352,119 @@ def teacher_view_attendance(student_id):
                          percentage=round(percentage, 2),
                          filter_date=filter_date)
 
-# Teacher - Mark Attendance for Student
+# Teacher - Mark Attendance for Student (Present/Absent)
 @app.route('/teacher/mark_attendance/<student_id>', methods=['POST'])
 @teacher_login_required
 def teacher_mark_attendance(student_id):
     today = datetime.now().strftime('%Y-%m-%d')
     current_time = datetime.now().strftime('%H:%M:%S')
-    
+
+    # Get status from form (default: Present)
+    status = request.form.get('status', 'Present')
+
     conn = get_db_connection()
-    
+
     # Check if already marked today
     existing = conn.execute(
         'SELECT * FROM attendance WHERE student_id = ? AND date = ?',
         (student_id, today)
     ).fetchone()
-    
+
     if existing:
         conn.close()
         flash('Attendance already marked for this student today!', 'warning')
         return redirect(url_for('teacher_students_list'))
-    
+
     # Insert attendance
     conn.execute(
         'INSERT INTO attendance (student_id, date, time, status) VALUES (?, ?, ?, ?)',
-        (student_id, today, current_time, 'Present')
+        (student_id, today, current_time, status)
     )
     conn.commit()
+
+    # Get student name
+    student = conn.execute('SELECT name FROM students WHERE student_id = ?', (student_id,)).fetchone()
     conn.close()
-    
-    flash('Attendance marked successfully!', 'success')
+
+    flash(f'Attendance marked as {status} for {student["name"]}!', 'success')
     return redirect(url_for('teacher_students_list'))
+
+# Teacher - Bulk Attendance Marking Page
+@app.route('/teacher/mark_attendance_bulk', methods=['GET', 'POST'])
+@teacher_login_required
+def mark_attendance_bulk():
+    conn = get_db_connection()
+
+    if request.method == 'POST':
+        today = datetime.now().strftime('%Y-%m-%d')
+        current_time = datetime.now().strftime('%H:%M:%S')
+
+        # Get all student IDs and their attendance status
+        marked_count = 0
+        for key, value in request.form.items():
+            if key.startswith('attendance_'):
+                student_id = key.replace('attendance_', '')
+
+                # Check if already marked today
+                existing = conn.execute(
+                    'SELECT * FROM attendance WHERE student_id = ? AND date = ?',
+                    (student_id, today)
+                ).fetchone()
+
+                if not existing:
+                    # Insert attendance
+                    conn.execute(
+                        'INSERT INTO attendance (student_id, date, time, status) VALUES (?, ?, ?, ?)',
+                        (student_id, today, current_time, value)
+                    )
+                    marked_count += 1
+
+        conn.commit()
+        conn.close()
+
+        if marked_count > 0:
+            flash(f'Attendance marked successfully for {marked_count} student(s)!', 'success')
+        else:
+            flash('Attendance already marked for all selected students today!', 'warning')
+
+        return redirect(url_for('mark_attendance_bulk'))
+
+    # GET request - show form
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    # Get all students
+    students = conn.execute('SELECT * FROM students ORDER BY student_id').fetchall()
+
+    # Check which students already have attendance today
+    marked_today = {}
+    for student in students:
+        record = conn.execute(
+            'SELECT status FROM attendance WHERE student_id = ? AND date = ?',
+            (student['student_id'], today)
+        ).fetchone()
+        marked_today[student['student_id']] = record['status'] if record else None
+
+    conn.close()
+
+    return render_template('teacher_mark_attendance_bulk.html',
+                         students=students,
+                         marked_today=marked_today,
+                         today=today)
 
 # Teacher - Delete Student
 @app.route('/teacher/delete_student/<student_id>', methods=['POST'])
 @teacher_login_required
 def delete_student(student_id):
     conn = get_db_connection()
-    
+
     # Delete attendance records first
     conn.execute('DELETE FROM attendance WHERE student_id = ?', (student_id,))
-    
+
     # Delete student
     conn.execute('DELETE FROM students WHERE student_id = ?', (student_id,))
     conn.commit()
     conn.close()
-    
+
     flash('Student deleted successfully!', 'success')
     return redirect(url_for('teacher_students_list'))
 
@@ -444,4 +477,4 @@ def logout():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)

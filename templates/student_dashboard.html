@@ -14,62 +14,62 @@
 <!-- Student Info -->
 <div class="row mb-4">
     <div class="col-md-12">
-        <div class="card shadow">
+        <div class="card shadow border-primary">
             <div class="card-body">
                 <h5 class="card-title">Welcome, {{ student.name }}!</h5>
                 <p class="mb-1"><strong>Student ID:</strong> {{ student.student_id }}</p>
-                <p class="mb-0"><strong>Gender:</strong> {{ student.gender }}</p>
+                <p class="mb-1"><strong>Gender:</strong> {{ student.gender }}</p>
+                <p class="mb-0"><strong>Username:</strong> {{ student.username }}</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Mark Attendance Button -->
+<!-- Information Notice -->
 <div class="row mb-4">
     <div class="col-md-12">
-        <div class="card shadow">
-            <div class="card-body text-center">
-                <h5 class="card-title mb-3">Mark Today's Attendance</h5>
-                {% if marked_today %}
-                    <button class="btn btn-secondary btn-lg" disabled>
-                        <i class="fas fa-check-circle"></i> Attendance Already Marked Today
-                    </button>
-                {% else %}
-                    <button id="markAttendanceBtn" class="btn btn-success btn-lg">
-                        <i class="fas fa-hand-paper"></i> Mark Attendance
-                    </button>
-                {% endif %}
-                <div id="attendanceMessage" class="mt-3"></div>
-            </div>
+        <div class="alert alert-info shadow">
+            <i class="fas fa-info-circle"></i>
+            <strong>Note:</strong> Your attendance is marked by your teacher.
+            You can view your attendance records and statistics below.
         </div>
     </div>
 </div>
 
 <!-- Statistics Cards -->
 <div class="row mb-4">
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card shadow stat-card bg-info text-white">
             <div class="card-body text-center">
                 <i class="fas fa-calendar-day fa-3x mb-3"></i>
-                <h3 id="totalDays">{{ total_days }}</h3>
+                <h3>{{ total_days }}</h3>
                 <p class="mb-0">Total Days</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card shadow stat-card bg-success text-white">
             <div class="card-body text-center">
                 <i class="fas fa-check-circle fa-3x mb-3"></i>
-                <h3 id="totalPresent">{{ total_present }}</h3>
+                <h3>{{ total_present }}</h3>
                 <p class="mb-0">Days Present</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
+        <div class="card shadow stat-card bg-danger text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-times-circle fa-3x mb-3"></i>
+                <h3>{{ total_absent }}</h3>
+                <p class="mb-0">Days Absent</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
         <div class="card shadow stat-card bg-warning text-white">
             <div class="card-body text-center">
                 <i class="fas fa-percentage fa-3x mb-3"></i>
-                <h3 id="percentage">{{ percentage }}%</h3>
+                <h3>{{ percentage }}%</h3>
                 <p class="mb-0">Attendance Rate</p>
             </div>
         </div>
@@ -104,9 +104,15 @@
                                     <td>{{ record.date }}</td>
                                     <td>{{ record.time }}</td>
                                     <td>
+                                        {% if record.status == 'Present' %}
                                         <span class="badge bg-success">
-                                            <i class="fas fa-check"></i> {{ record.status }}
+                                            <i class="fas fa-check"></i> Present
                                         </span>
+                                        {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times"></i> Absent
+                                        </span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -115,24 +121,11 @@
                     </div>
                 {% else %}
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No attendance records found. Start marking your attendance today!
+                        <i class="fas fa-info-circle"></i> No attendance records found yet. Your teacher will mark your attendance.
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    const markAttendanceBtn = document.getElementById('markAttendanceBtn');
-    const attendanceMessage = document.getElementById('attendanceMessage');
-    
-    if (markAttendanceBtn) {
-        markAttendanceBtn.addEventListener('click', function() {
-            markAttendance();
-        });
-    }
-</script>
 {% endblock %}
