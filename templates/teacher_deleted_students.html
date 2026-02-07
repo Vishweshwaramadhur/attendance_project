@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Deleted Students - Teacher Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-trash-restore"></i> Deleted Students History
+        </h2>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Information:</strong> This page shows all students that have been deleted.
+            You can restore any student by clicking the "Restore" button.
+        </div>
+    </div>
+</div>
+
+<!-- Back Button -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <a href="{{ url_for('teacher_students_list') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Students List
+        </a>
+    </div>
+</div>
+
+<!-- Deleted Students Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-trash"></i> Deleted Students ({{ deleted_students|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if deleted_students %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Gender</th>
+                                <th>Username</th>
+                                <th>Deleted By</th>
+                                <th>Deleted Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in deleted_students %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ student.student_id }}</td>
+                                <td><strong>{{ student.name }}</strong></td>
+                                <td>
+                                    {% if student.gender == 'Male' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-male"></i> Male
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-female"></i> Female
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ student.username }}</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-user-tie"></i> {{ student.deleted_by }}
+                                    </span>
+                                </td>
+                                <td>{{ student.deleted_at[:16] }}</td>
+                                <td>
+                                    <form method="POST"
+                                        action="{{ url_for('restore_student', deleted_id=student.id) }}"
+                                        style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-success"
+                                            onclick="return confirm('Are you sure you want to restore {{ student.name }}?');">
+                                            <i class="fas fa-undo"></i> Restore
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success text-center">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h5>No Deleted Students</h5>
+                    <p class="mb-0">Great! No students have been deleted yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Card -->
+{% if deleted_students %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow border-warning">
+            <div class="card-body">
+                <h5 class="card-title text-warning">
+                    <i class="fas fa-exclamation-triangle"></i> Important Notes
+                </h5>
+                <ul class="mb-0">
+                    <li>Restoring a student will bring them back to the active students list</li>
+                    <li>Their previous attendance records were permanently deleted</li>
+                    <li>You can restore any student anytime from this page</li>
+                    <li>Deleted student records are kept for future reference</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

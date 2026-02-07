@@ -285,20 +285,29 @@ def teacher_dashboard():
     total_boys = conn.execute('SELECT COUNT(*) as count FROM students WHERE gender = "Male"').fetchone()['count']
     total_girls = conn.execute('SELECT COUNT(*) as count FROM students WHERE gender = "Female"').fetchone()['count']
     
-    # Get today's attendance
+    # Get today's attendance - separated by Present and Absent
     today = datetime.now().strftime('%Y-%m-%d')
-    todays_attendance = conn.execute(
-        'SELECT COUNT(*) as count FROM attendance WHERE date = ?',
+    todays_present = conn.execute(
+        'SELECT COUNT(*) as count FROM attendance WHERE date = ? AND status = "Present"',
         (today,)
     ).fetchone()['count']
-    
+
+    todays_absent = conn.execute(
+        'SELECT COUNT(*) as count FROM attendance WHERE date = ? AND status = "Absent"',
+        (today,)
+    ).fetchone()['count']
+
+    todays_total = todays_present + todays_absent
+
     conn.close()
-    
+
     return render_template('teacher_dashboard.html',
                          total_students=total_students,
                          total_boys=total_boys,
                          total_girls=total_girls,
-                         todays_attendance=todays_attendance)
+                         todays_present=todays_present,
+                         todays_absent=todays_absent,
+                         todays_total=todays_total)
 
 # Teacher - View Students List
 @app.route('/teacher/students')
@@ -451,22 +460,165 @@ def mark_attendance_bulk():
                          marked_today=marked_today,
                          today=today)
 
-# Teacher - Delete Student
+# Teacher - Delete Student (with history tracking)
 @app.route('/teacher/delete_student/<student_id>', methods=['POST'])
 @teacher_login_required
 def delete_student(student_id):
     conn = get_db_connection()
 
-    # Delete attendance records first
-    conn.execute('DELETE FROM attendance WHERE student_id = ?', (student_id,))
+    # Get student data before deleting
+    student = conn.execute('SELECT * FROM students WHERE student_id = ?', (student_id,)).fetchone()
 
-    # Delete student
-    conn.execute('DELETE FROM students WHERE student_id = ?', (student_id,))
-    conn.commit()
+    if student:
+        # Save to deleted_students table
+        deleted_by = session.get('teacher_name', 'Unknown')
+        cursor = conn.execute('''
+            INSERT INTO deleted_students (student_id, name, gender, username, password, deleted_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (student['student_id'], student['name'], student['gender'],
+              student['username'], student['password'], deleted_by))
+
+        deleted_student_id = cursor.lastrowid
+
+        # Save attendance records to deleted_attendance table
+        attendance_records = conn.execute(
+            'SELECT * FROM attendance WHERE student_id = ?', (student_id,)
+        ).fetchall()
+
+        for record in attendance_records:
+            conn.execute('''
+                INSERT INTO deleted_attendance
+                (original_attendance_id, student_id, date, time, status, created_at, deleted_with_student_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (record['id'], record['student_id'], record['date'], record['time'],
+                  record['status'], record['created_at'], deleted_student_id))
+
+        # Now delete attendance records
+        conn.execute('DELETE FROM attendance WHERE student_id = ?', (student_id,))
+
+        # Delete student
+        conn.execute('DELETE FROM students WHERE student_id = ?', (student_id,))
+        conn.commit()
+
+        flash(f'Student {student["name"]} deleted successfully! All data saved - you can restore from Deleted Students page.', 'success')
+    else:
+        flash('Student not found!', 'danger')
+
+    conn.close()
+    return redirect(url_for('teacher_students_list'))
+
+# Teacher - View Today's Present Students
+@app.route('/teacher/todays_present')
+@teacher_login_required
+def todays_present_students():
+    conn = get_db_connection()
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    # Get students who are present today
+    present_students = conn.execute('''
+        SELECT s.student_id, s.name, s.gender, a.time
+        FROM students s
+        JOIN attendance a ON s.student_id = a.student_id
+        WHERE a.date = ? AND a.status = "Present"
+        ORDER BY a.time DESC
+    ''', (today,)).fetchall()
+
+    conn.close()
+    return render_template('teacher_todays_attendance.html',
+                         students=present_students,
+                         status='Present',
+                         today=today)
+
+# Teacher - View Today's Absent Students
+@app.route('/teacher/todays_absent')
+@teacher_login_required
+def todays_absent_students():
+    conn = get_db_connection()
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    # Get students who are absent today
+    absent_students = conn.execute('''
+        SELECT s.student_id, s.name, s.gender, a.time
+        FROM students s
+        JOIN attendance a ON s.student_id = a.student_id
+        WHERE a.date = ? AND a.status = "Absent"
+        ORDER BY a.time DESC
+    ''', (today,)).fetchall()
+
+    conn.close()
+    return render_template('teacher_todays_attendance.html',
+                         students=absent_students,
+                         status='Absent',
+                         today=today)
+
+# Teacher - View Deleted Students
+@app.route('/teacher/deleted_students')
+@teacher_login_required
+def view_deleted_students():
+    conn = get_db_connection()
+    deleted_students = conn.execute(
+        'SELECT * FROM deleted_students ORDER BY deleted_at DESC'
+    ).fetchall()
     conn.close()
 
-    flash('Student deleted successfully!', 'success')
-    return redirect(url_for('teacher_students_list'))
+    return render_template('teacher_deleted_students.html', deleted_students=deleted_students)
+
+# Teacher - Restore Deleted Student
+@app.route('/teacher/restore_student/<int:deleted_id>', methods=['POST'])
+@teacher_login_required
+def restore_student(deleted_id):
+    conn = get_db_connection()
+
+    # Get deleted student data
+    deleted_student = conn.execute(
+        'SELECT * FROM deleted_students WHERE id = ?', (deleted_id,)
+    ).fetchone()
+
+    if deleted_student:
+        # Check if student_id already exists (prevent duplicates)
+        existing = conn.execute(
+            'SELECT * FROM students WHERE student_id = ?',
+            (deleted_student['student_id'],)
+        ).fetchone()
+
+        if existing:
+            flash(f'Student {deleted_student["name"]} already exists in active students!', 'warning')
+        else:
+            # Restore student to students table
+            conn.execute('''
+                INSERT INTO students (student_id, name, gender, username, password)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (deleted_student['student_id'], deleted_student['name'],
+                  deleted_student['gender'], deleted_student['username'],
+                  deleted_student['password']))
+
+            # Restore attendance records
+            deleted_attendance_records = conn.execute(
+                'SELECT * FROM deleted_attendance WHERE deleted_with_student_id = ?',
+                (deleted_id,)
+            ).fetchall()
+
+            for record in deleted_attendance_records:
+                conn.execute('''
+                    INSERT INTO attendance (student_id, date, time, status, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (record['student_id'], record['date'], record['time'],
+                      record['status'], record['created_at']))
+
+            # Remove from deleted_attendance table
+            conn.execute('DELETE FROM deleted_attendance WHERE deleted_with_student_id = ?', (deleted_id,))
+
+            # Remove from deleted_students table
+            conn.execute('DELETE FROM deleted_students WHERE id = ?', (deleted_id,))
+            conn.commit()
+
+            attendance_count = len(deleted_attendance_records)
+            flash(f'Student {deleted_student["name"]} restored successfully with {attendance_count} attendance records!', 'success')
+    else:
+        flash('Deleted student record not found!', 'danger')
+
+    conn.close()
+    return redirect(url_for('view_deleted_students'))
 
 # Logout
 @app.route('/logout')

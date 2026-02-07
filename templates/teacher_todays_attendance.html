@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Today's {{ status }} Students{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            {% if status == 'Present' %}
+            <i class="fas fa-check-circle text-success"></i> Students Present Today
+            {% else %}
+            <i class="fas fa-times-circle text-warning"></i> Students Absent Today
+            {% endif %}
+        </h2>
+    </div>
+</div>
+
+<!-- Date Info -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert {% if status == 'Present' %}alert-success{% else %}alert-warning{% endif %}">
+            <i class="fas fa-calendar-day"></i>
+            <strong>Date:</strong> {{ today }}
+            <span class="float-end">
+                <strong>Total {{ status }}:</strong> {{ students|length }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Back Button -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Students List -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header {% if status == 'Present' %}bg-success{% else %}bg-warning{% endif %} text-white">
+                <h5 class="mb-0">
+                    {% if status == 'Present' %}
+                    <i class="fas fa-user-check"></i> Present Students ({{ students|length }})
+                    {% else %}
+                    <i class="fas fa-user-times"></i> Absent Students ({{ students|length }})
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if students %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Gender</th>
+                                <th>Marked Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ student.student_id }}</strong></td>
+                                <td>{{ student.name }}</td>
+                                <td>
+                                    {% if student.gender == 'Male' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-male"></i> Male
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-female"></i> Female
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ student.time }}</td>
+                                <td>
+                                    {% if status == 'Present' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Present
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-times"></i> Absent
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert {% if status == 'Present' %}alert-info{% else %}alert-success{% endif %} text-center">
+                    <i class="fas fa-info-circle fa-3x mb-3"></i>
+                    {% if status == 'Present' %}
+                    <h5>No Students Marked Present Today</h5>
+                    <p class="mb-0">Start marking attendance from the bulk attendance page.</p>
+                    {% else %}
+                    <h5>No Students Marked Absent Today</h5>
+                    <p class="mb-0">Great! All marked students are present.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Card -->
+{% if students %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow {% if status == 'Present' %}border-success{% else %}border-warning{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-bar"></i> Quick Summary
+                </h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <h3 class="{% if status == 'Present' %}text-success{% else %}text-warning{% endif %}">
+                            {{ students|length }}
+                        </h3>
+                        <p class="mb-0">Total {{ status }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-info">
+                            {{ students|selectattr('gender', 'equalto', 'Male')|list|length }}
+                        </h3>
+                        <p class="mb-0">Boys</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-danger">
+                            {{ students|selectattr('gender', 'equalto', 'Female')|list|length }}
+                        </h3>
+                        <p class="mb-0">Girls</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
